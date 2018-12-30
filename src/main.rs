@@ -74,3 +74,29 @@ fn main() -> Result<(), BFIError> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::BFI;
+    use crate::BFIError;
+
+    #[test]
+    fn test_check_syntax() {
+        let bfi = BFI::new("[->+<]".to_string());
+        assert!(bfi.check_syntax().is_ok());
+
+        let bfi = BFI::new("+->[".to_string());
+        assert!(if let BFIError::MissingClosingBrackets = bfi.check_syntax().unwrap_err() {
+            true
+        } else {
+            false
+        });
+
+        let bfi = BFI::new("[]+-]".to_string());
+        assert!(if let BFIError::MissingOpeningBrackets = bfi.check_syntax().unwrap_err() {
+            true
+        } else {
+            false
+        });
+    }
+}
+
