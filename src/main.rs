@@ -1,5 +1,6 @@
 use std::env;
 use std::fs::File;
+use std::i8;
 use std::io::Read;
 
 #[derive(Debug)]
@@ -8,6 +9,7 @@ pub enum BFIError {
     MissingClosingBrackets,
     MissingOpeningBrackets,
     OutOfMemory,
+    ArithmeticOverflow,
 }
 
 impl std::fmt::Display for BFIError {
@@ -17,6 +19,7 @@ impl std::fmt::Display for BFIError {
             BFIError::MissingClosingBrackets => write!(f, "Missing closing bracket(s)"),
             BFIError::MissingOpeningBrackets => write!(f, "Missing opening bracket(s)"),
             BFIError::OutOfMemory => write!(f, "Pointer moved to out of range of memory"),
+            BFIError::ArithmeticOverflow => write!(f, "Byte overflow"),
         }
     }
 }
@@ -29,7 +32,7 @@ impl From<std::io::Error> for BFIError {
 
 #[derive(Debug)]
 pub struct BFI {
-    x: Vec<i32>,
+    x: Vec<i8>,
     c: String,
     pc: usize,
 }
@@ -125,6 +128,8 @@ fn main() -> Result<(), BFIError> {
 
 #[cfg(test)]
 mod tests {
+    use std::i8;
+
     use crate::BFI;
     use crate::BFIError;
 
