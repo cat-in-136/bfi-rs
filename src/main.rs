@@ -37,6 +37,7 @@ pub struct BFI {
     c: String,
     p: usize,
     pc: usize,
+    l: usize,
 }
 
 impl BFI {
@@ -46,6 +47,7 @@ impl BFI {
             c: s,
             p: 0,
             pc: 0,
+            l: 0,
         }
     }
 
@@ -126,6 +128,32 @@ impl BFI {
         Ok(())
     }
 
+    fn start_jump(&mut self) {
+        if self.x[self.p] == 0 {
+            self.pc += 1;
+            while self.l > 0 || self.c.get(self.pc..=self.pc) != Some("]") {
+                match self.c.get(self.pc..=self.pc) {
+                    Some("[") => self.l += 1,
+                    Some("]") => self.l -= 1,
+                    _ => (),
+                };
+                self.pc += 1;
+            }
+        }
+    }
+
+    fn end_jump(&mut self) {
+        self.pc -= 1;
+        while self.l > 0 || self.c.get(self.pc..=self.pc) != Some("[") {
+            match self.c.get(self.pc..=self.pc) {
+                Some("]") => self.l -= 1,
+                Some("[") => self.l += 1,
+                _ => (),
+            };
+            self.pc -= 1;
+        }
+    }
+
     pub fn interpret(&mut self, reader: &mut Read, writer: &mut Write) -> Result<(), BFIError> {
         let chars_length = self.c.len();
 
@@ -140,8 +168,8 @@ impl BFI {
                 Some("-") => self.decrement_byte_at_pointer()?,
                 Some(".") => self.output(writer)?,
                 Some(",") => self.input(reader)?,
-                Some("[") => (),
-                Some("]") => (),
+                Some("[") => self.start_jump(),
+                Some("]") => self.end_jump(),
                 _ => (),
             };
 
@@ -333,6 +361,52 @@ mod tests {
         bfi.p = 4;
         bfi.input(&mut cursor).unwrap();
         assert_eq!(bfi.x[0..5], [0, 1, i8::MIN, i8::MAX, std::u8::MAX as i8]);
+    }
+
+    #[test]
+    fn test_start_jump() {
+        let mut bfi = BFI::new("[_]".to_string());
+        bfi.p = 0;
+        bfi.pc = 0;
+        bfi.x[0] = 0;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 2);
+
+        bfi.p = 0;
+        bfi.pc = 0;
+        bfi.x[0] = 1;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 0);
+
+        let mut bfi = BFI::new("[_[[_][_]_]]".to_string());
+        bfi.p = 0;
+        bfi.pc = 0;
+        bfi.x[0] = 0;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 11);
+    }
+
+    #[test]
+    fn test_end_jump() {
+        let mut bfi = BFI::new("[_]".to_string());
+        bfi.p = 0;
+        bfi.pc = 2;
+        bfi.x[0] = 0;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 0);
+
+        bfi.p = 0;
+        bfi.pc = 2;
+        bfi.x[0] = 1;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 0);
+
+        let mut bfi = BFI::new("[_[[_][_]_]]".to_string());
+        bfi.p = 0;
+        bfi.pc = 11;
+        bfi.x[0] = 0;
+        bfi.start_jump();
+        assert_eq!(bfi.pc, 0);
     }
 }
 
