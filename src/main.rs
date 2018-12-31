@@ -85,19 +85,19 @@ impl BFI {
     }
 
     fn increment_pointer(&mut self) -> Result<(), BFIError> {
-        if self.pc + 1 >= self.x.len() as isize {
+        if self.p + 1 >= self.x.len() {
             Err(BFIError::OutOfMemory)
         } else {
-            self.pc += 1;
+            self.p += 1;
             Ok(())
         }
     }
 
     fn decrement_pointer(&mut self) -> Result<(), BFIError> {
-        if self.pc <= 0 {
+        if self.p <= 0 {
             Err(BFIError::OutOfMemory)
         } else {
-            self.pc -= 1;
+            self.p -= 1;
             Ok(())
         }
     }
@@ -223,41 +223,41 @@ mod tests {
     #[test]
     fn test_check_increment_pointer() {
         let mut bfi = BFI::new(".".to_string());
-        assert_eq!(bfi.pc, 0);
+        assert_eq!(bfi.p, 0);
         bfi.increment_pointer().unwrap();
-        assert_eq!(bfi.pc, 1);
+        assert_eq!(bfi.p, 1);
         bfi.increment_pointer().unwrap();
-        assert_eq!(bfi.pc, 2);
+        assert_eq!(bfi.p, 2);
 
-        bfi.pc = bfi.x.len() as isize - 2;
+        bfi.p = bfi.x.len() - 2;
         bfi.increment_pointer().unwrap();
-        assert_eq!(bfi.pc, bfi.x.len() as isize - 1);
+        assert_eq!(bfi.p, bfi.x.len() - 1);
         assert!(if let BFIError::OutOfMemory = bfi.increment_pointer().unwrap_err() {
             true
         } else {
             false
         });
-        assert_eq!(bfi.pc, bfi.x.len() as isize - 1);
+        assert_eq!(bfi.p, bfi.x.len() - 1);
     }
 
     #[test]
     fn test_check_decrement_pointer() {
         let mut bfi = BFI::new(".".to_string());
-        assert_eq!(bfi.pc, 0);
+        assert_eq!(bfi.p, 0);
         assert!(if let BFIError::OutOfMemory = bfi.decrement_pointer().unwrap_err() {
             true
         } else {
             false
         });
-        assert_eq!(bfi.pc, 0);
+        assert_eq!(bfi.p, 0);
 
-        bfi.pc = 1;
+        bfi.p = 1;
         bfi.decrement_pointer().unwrap();
-        assert_eq!(bfi.pc, 0);
+        assert_eq!(bfi.p, 0);
 
-        bfi.pc = bfi.x.len() as isize - 1;
+        bfi.p = bfi.x.len() - 1;
         bfi.decrement_pointer().unwrap();
-        assert_eq!(bfi.pc, bfi.x.len() as isize - 2);
+        assert_eq!(bfi.p, bfi.x.len() - 2);
     }
 
     #[test]
