@@ -7,7 +7,7 @@ pub enum BFIError {
     Io(std::io::Error),
     MissingClosingBrackets,
     MissingOpeningBrackets,
-    MemoryOverRun,
+    OutOfMemory,
 }
 
 impl std::fmt::Display for BFIError {
@@ -16,7 +16,7 @@ impl std::fmt::Display for BFIError {
             BFIError::Io(ref err) => write!(f, "{}", err),
             BFIError::MissingClosingBrackets => write!(f, "Missing closing bracket(s)"),
             BFIError::MissingOpeningBrackets => write!(f, "Missing opening bracket(s)"),
-            BFIError::MemoryOverRun => write!(f, "Pointer moved to out of range of memory"),
+            BFIError::OutOfMemory => write!(f, "Pointer moved to out of range of memory"),
         }
     }
 }
@@ -73,7 +73,7 @@ impl BFI {
 
     fn increment_pointer(&mut self) -> Result<(), BFIError> {
         if self.pc + 1 >= self.x.len() {
-            Err(BFIError::MemoryOverRun)
+            Err(BFIError::OutOfMemory)
         } else {
             self.pc += 1;
             Ok(())
@@ -82,7 +82,7 @@ impl BFI {
 
     fn decrement_pointer(&mut self) -> Result<(), BFIError> {
         if self.pc <= 0 {
-            Err(BFIError::MemoryOverRun)
+            Err(BFIError::OutOfMemory)
         } else {
             self.pc -= 1;
             Ok(())
@@ -160,7 +160,7 @@ mod tests {
         bfi.pc = bfi.x.len() - 2;
         bfi.increment_pointer().unwrap();
         assert_eq!(bfi.pc, bfi.x.len() - 1);
-        assert!(if let BFIError::MemoryOverRun = bfi.increment_pointer().unwrap_err() {
+        assert!(if let BFIError::OutOfMemory = bfi.increment_pointer().unwrap_err() {
             true
         } else {
             false
@@ -172,7 +172,7 @@ mod tests {
     fn test_check_decrement_pointer() {
         let mut bfi = BFI::new(".".to_string());
         assert_eq!(bfi.pc, 0);
-        assert!(if let BFIError::MemoryOverRun = bfi.decrement_pointer().unwrap_err() {
+        assert!(if let BFIError::OutOfMemory = bfi.decrement_pointer().unwrap_err() {
             true
         } else {
             false
