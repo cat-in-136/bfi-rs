@@ -34,6 +34,7 @@ impl From<std::io::Error> for BFIError {
 pub struct BFI {
     x: Vec<i8>,
     c: String,
+    p: usize,
     pc: usize,
 }
 
@@ -42,6 +43,7 @@ impl BFI {
         Self {
             x: vec![0; 32767 + 1],
             c: s,
+            p: 0,
             pc: 0,
         }
     }
@@ -92,6 +94,15 @@ impl BFI {
         }
     }
 
+    fn increment_byte_at_pointer(&mut self) -> Result<(), BFIError> {
+        if self.x[self.p] == i8::MAX {
+            Err(BFIError::ArithmeticOverflow)
+        } else {
+            self.x[self.p] += 1;
+            Ok(())
+        }
+    }
+
     pub fn interpret(&mut self) -> Result<(), BFIError> {
         let chars_length = self.c.len();
 
@@ -102,7 +113,7 @@ impl BFI {
             match c {
                 Some(">") => self.increment_pointer()?,
                 Some("<") => self.decrement_pointer()?,
-                Some("+") => (),
+                Some("+") => self.increment_byte_at_pointer()?,
                 Some("-") => (),
                 Some(".") => (),
                 Some(",") => (),
@@ -191,6 +202,33 @@ mod tests {
         bfi.pc = bfi.x.len() - 1;
         bfi.decrement_pointer().unwrap();
         assert_eq!(bfi.pc, bfi.x.len() - 2);
+    }
+
+    #[test]
+    fn test_increment_byte_at_pointer() {
+        let mut bfi = BFI::new(".".to_string());
+        bfi.p = 0;
+        assert_eq!(bfi.x[0], 0);
+        bfi.increment_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[0], 1);
+        bfi.increment_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[0], 2);
+
+        bfi.p = 1;
+        bfi.x[1] = i8::MAX - 1;
+        bfi.increment_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[1], i8::MAX);
+        assert!(if let BFIError::ArithmeticOverflow = bfi.increment_byte_at_pointer().unwrap_err() {
+            true
+        } else {
+            false
+        });
+        assert_eq!(bfi.x[1], i8::MAX);
+
+        bfi.p = 2;
+        bfi.x[2] = i8::MIN;
+        bfi.increment_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[2], i8::MIN + 1);
     }
 }
 
