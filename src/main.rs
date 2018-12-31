@@ -103,6 +103,15 @@ impl BFI {
         }
     }
 
+    fn decrement_byte_at_pointer(&mut self) -> Result<(), BFIError> {
+        if self.x[self.p] == i8::MIN {
+            Err(BFIError::ArithmeticOverflow)
+        } else {
+            self.x[self.p] -= 1;
+            Ok(())
+        }
+    }
+
     pub fn interpret(&mut self) -> Result<(), BFIError> {
         let chars_length = self.c.len();
 
@@ -114,7 +123,7 @@ impl BFI {
                 Some(">") => self.increment_pointer()?,
                 Some("<") => self.decrement_pointer()?,
                 Some("+") => self.increment_byte_at_pointer()?,
-                Some("-") => (),
+                Some("-") => self.decrement_byte_at_pointer()?,
                 Some(".") => (),
                 Some(",") => (),
                 Some("[") => (),
@@ -229,6 +238,33 @@ mod tests {
         bfi.x[2] = i8::MIN;
         bfi.increment_byte_at_pointer().unwrap();
         assert_eq!(bfi.x[2], i8::MIN + 1);
+    }
+
+    #[test]
+    fn test_decrement_byte_at_pointer() {
+        let mut bfi = BFI::new(".".to_string());
+        bfi.p = 0;
+        assert_eq!(bfi.x[0], 0);
+        bfi.decrement_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[0], -1);
+        bfi.decrement_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[0], -2);
+
+        bfi.p = 1;
+        bfi.x[1] = i8::MIN + 1;
+        bfi.decrement_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[1], i8::MIN);
+        assert!(if let BFIError::ArithmeticOverflow = bfi.decrement_byte_at_pointer().unwrap_err() {
+            true
+        } else {
+            false
+        });
+        assert_eq!(bfi.x[1], i8::MIN);
+
+        bfi.p = 2;
+        bfi.x[2] = i8::MAX;
+        bfi.decrement_byte_at_pointer().unwrap();
+        assert_eq!(bfi.x[2], i8::MAX - 1);
     }
 }
 
