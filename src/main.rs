@@ -2,6 +2,7 @@ use std::env;
 use std::fs::File;
 use std::i8;
 use std::io::Read;
+use std::io::Write;
 
 #[derive(Debug)]
 pub enum BFIError {
@@ -112,7 +113,13 @@ impl BFI {
         }
     }
 
-    pub fn interpret(&mut self) -> Result<(), BFIError> {
+    fn output(&self, writer: &mut Write) -> Result<(), BFIError> {
+        let buf = [self.x[self.p] as u8; 1];
+        writer.write(&buf)?;
+        Ok(())
+    }
+
+    pub fn interpret(&mut self, _reader: &Read, writer: &mut Write) -> Result<(), BFIError> {
         let chars_length = self.c.len();
 
         self.pc = 0;
@@ -124,7 +131,7 @@ impl BFI {
                 Some("<") => self.decrement_pointer()?,
                 Some("+") => self.increment_byte_at_pointer()?,
                 Some("-") => self.decrement_byte_at_pointer()?,
-                Some(".") => (),
+                Some(".") => self.output(writer)?,
                 Some(",") => (),
                 Some("[") => (),
                 Some("]") => (),
@@ -141,7 +148,7 @@ fn main() -> Result<(), BFIError> {
     for argument in env::args().skip(1) {
         let mut bfi = BFI::from_file(argument)?;
         bfi.check_syntax()?;
-        bfi.interpret()?;
+        bfi.interpret(&std::io::stdin(), &mut std::io::stdout())?;
     }
     Ok(())
 }
@@ -149,6 +156,7 @@ fn main() -> Result<(), BFIError> {
 #[cfg(test)]
 mod tests {
     use std::i8;
+    use std::io::Cursor;
 
     use crate::BFI;
     use crate::BFIError;
@@ -265,6 +273,32 @@ mod tests {
         bfi.x[2] = i8::MAX;
         bfi.decrement_byte_at_pointer().unwrap();
         assert_eq!(bfi.x[2], i8::MAX - 1);
+    }
+
+    #[test]
+    fn test_output() {
+        let mut bfi = BFI::new(".".to_string());
+        bfi.p = 0;
+        bfi.x[0] = 0;
+
+        let mut cursor = Cursor::new(Vec::new());
+        bfi.output(&mut cursor).unwrap();
+        assert_eq!(cursor.get_ref()[0], 0);
+
+        bfi.p = 1;
+        bfi.x[1] = 1;
+        bfi.output(&mut cursor).unwrap();
+        assert_eq!(cursor.get_ref()[0..2], [0, 1]);
+
+        bfi.p = 2;
+        bfi.x[2] = i8::MAX;
+        bfi.output(&mut cursor).unwrap();
+        assert_eq!(cursor.get_ref()[0..3], [0, 1, i8::MAX as u8]);
+
+        bfi.p = 3;
+        bfi.x[3] = i8::MIN;
+        bfi.output(&mut cursor).unwrap();
+        assert_eq!(cursor.get_ref()[0..4], [0, 1, i8::MAX as u8, i8::MIN as u8]);
     }
 }
 
