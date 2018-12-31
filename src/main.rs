@@ -119,7 +119,14 @@ impl BFI {
         Ok(())
     }
 
-    pub fn interpret(&mut self, _reader: &Read, writer: &mut Write) -> Result<(), BFIError> {
+    fn input(&mut self, reader: &mut Read) -> Result<(), BFIError> {
+        let mut buf = [0u8; 1];
+        reader.read(&mut buf)?;
+        self.x[self.p] = buf[0] as i8;
+        Ok(())
+    }
+
+    pub fn interpret(&mut self, reader: &mut Read, writer: &mut Write) -> Result<(), BFIError> {
         let chars_length = self.c.len();
 
         self.pc = 0;
@@ -132,7 +139,7 @@ impl BFI {
                 Some("+") => self.increment_byte_at_pointer()?,
                 Some("-") => self.decrement_byte_at_pointer()?,
                 Some(".") => self.output(writer)?,
-                Some(",") => (),
+                Some(",") => self.input(reader)?,
                 Some("[") => (),
                 Some("]") => (),
                 _ => (),
@@ -148,7 +155,7 @@ fn main() -> Result<(), BFIError> {
     for argument in env::args().skip(1) {
         let mut bfi = BFI::from_file(argument)?;
         bfi.check_syntax()?;
-        bfi.interpret(&std::io::stdin(), &mut std::io::stdout())?;
+        bfi.interpret(&mut std::io::stdin(), &mut std::io::stdout())?;
     }
     Ok(())
 }
@@ -299,6 +306,33 @@ mod tests {
         bfi.x[3] = i8::MIN;
         bfi.output(&mut cursor).unwrap();
         assert_eq!(cursor.get_ref()[0..4], [0, 1, i8::MAX as u8, i8::MIN as u8]);
+    }
+
+    #[test]
+    fn test_input() {
+        let mut bfi = BFI::new(".".to_string());
+        bfi.p = 0;
+        bfi.x[0] = 0;
+
+        let mut cursor = Cursor::new(vec![0, 1, i8::MIN as u8, i8::MAX as u8, std::u8::MAX]);
+        bfi.input(&mut cursor).unwrap();
+        assert_eq!(bfi.x[0], 0);
+
+        bfi.p = 1;
+        bfi.input(&mut cursor).unwrap();
+        assert_eq!(bfi.x[0..2], [0, 1]);
+
+        bfi.p = 2;
+        bfi.input(&mut cursor).unwrap();
+        assert_eq!(bfi.x[0..3], [0, 1, i8::MIN]);
+
+        bfi.p = 3;
+        bfi.input(&mut cursor).unwrap();
+        assert_eq!(bfi.x[0..4], [0, 1, i8::MIN, i8::MAX]);
+
+        bfi.p = 4;
+        bfi.input(&mut cursor).unwrap();
+        assert_eq!(bfi.x[0..5], [0, 1, i8::MIN, i8::MAX, std::u8::MAX as i8]);
     }
 }
 
