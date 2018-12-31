@@ -418,5 +418,34 @@ mod tests {
         bfi.end_jump();
         assert_eq!(bfi.pc, 1);
     }
+
+    #[test]
+    fn test_interpret() {
+        let code = r#"
+            ### Simple Adder ###
+            ,>,<
+            >[-<+>]<
+            .
+        "#;
+        let mut bfi = BFI::new(code.to_string());
+        let mut reader = Cursor::new(vec![1, 2]);
+        let mut writer = Cursor::new(Vec::new());
+        bfi.interpret(&mut reader, &mut writer).unwrap();
+        assert_eq!(writer.into_inner(), vec![3]);
+        assert_eq!(bfi.pc, code.len() as isize);
+
+        let hello_world = r#"
+            Hello World program
+            >+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]
+            <.#>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[
+            <++++>-]<+.[-]++++++++++.
+        "#; // http://esoteric.sange.fi/brainfuck/bf-source/prog/HELLOBF.BF
+        let mut bfi = BFI::new(hello_world.to_string());
+        let mut reader = Cursor::new(Vec::new());
+        let mut writer = Cursor::new(Vec::new());
+        bfi.interpret(&mut reader, &mut writer).unwrap();
+        assert_eq!(writer.into_inner(), "Hello World!\n".as_bytes());
+        assert_eq!(bfi.pc, hello_world.len() as isize);
+    }
 }
 
