@@ -3,6 +3,7 @@ language: rust
 os:
   - linux
   - osx
+  - windows
 
 rust:
   - stable
@@ -12,6 +13,7 @@ rust:
 matrix:
   allow_failures:
   - rust: nightly
+  - os: windows
 
 notifications:
   slack:
